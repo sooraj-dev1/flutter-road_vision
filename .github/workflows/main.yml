@@ -1,47 +1,53 @@
-name: Road Vision CI
+name: Flutter CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
-  test_and_build:
-    name: Test & Build
+  build_and_test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # 1. Check out the repository code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
+      # 2. Set up Java (required for Android builds)
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Flutter
+      # 3. Set up Flutter environment
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Create .env file
-        run: echo "${{ secrets.ENV_FILE }}" > .env
-
-      - name: Setup Google Services
-        run: |
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > android/app/google-services.json
-
+      # 4. Fetch project dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Run Flutter Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+      # 5. Check code formatting and static analysis
+      - name: Analyze project
+        run: flutter analyze
 
-      - name: Run Tests
+      # 6. Run unit tests
+      - name: Run unit tests
         run: flutter test
 
-      - name: Build APK
-        run: flutter build apk --debug
+      # 7. Build the release APK
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      # 8. (Optional) Upload the built APK as a downloadable artifact
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
